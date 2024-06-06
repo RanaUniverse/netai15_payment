@@ -14,6 +14,8 @@
             justify-content: center;
             align-items: center;
             height: 100vh;
+            flex-direction: column;
+            text-align: center;
         }
         .container {
             background-color: #ffffff;
@@ -74,7 +76,11 @@
             width: calc(100% - 22px);
             margin-bottom: 10px;
         }
+        #qrcode {
+            margin-top: 20px;
+        }
     </style>
+    <script src="https://cdn.rawgit.com/davidshimjs/qrcodejs/gh-pages/qrcode.min.js"></script>
 </head>
 <body>
     <div class="container">
@@ -85,25 +91,38 @@
         
         <div class="input-box">
             <input type="number" id="amount" placeholder="Enter amount in ₹">
-            <button class="btn" onclick="generateLink()">Generate Payment Link</button>
+            <button class="btn" onclick="generateQRCode()">Generate QR Code</button>
         </div>
         
-        <a class="btn" id="paymentLink" style="display: none;">Click here to pay ₹<span id="amountDisplay"></span></a>
+        <div id="qrcode"></div>
+        <p id="amountDisplayText" style="display: none;">Amount: ₹<span id="amountDisplay"></span></p>
 
         <img src="rectangle-image.png" alt="Rectangle Image" class="rectangle-image">
         <p class="support">If you have any questions or need assistance, please don't hesitate to contact us.</p>
     </div>
 
     <script>
-        function generateLink() {
+        function generateQRCode() {
             const amount = document.getElementById('amount').value;
             if (amount && amount > 0) {
-                const paymentLink = document.getElementById('paymentLink');
+                const upiLink = `upi://pay?pa=netai15@paytm&am=${amount}`;
+                const qrCodeContainer = document.getElementById('qrcode');
+                const amountDisplayText = document.getElementById('amountDisplayText');
                 const amountDisplay = document.getElementById('amountDisplay');
                 
-                paymentLink.href = `upi://pay?pa=9800100460@okbizaxis&am=${amount}`;
+                // Clear any existing QR code
+                qrCodeContainer.innerHTML = '';
+
+                // Generate QR code
+                new QRCode(qrCodeContainer, {
+                    text: upiLink,
+                    width: 200,
+                    height: 200,
+                });
+
+                // Display amount below QR code
                 amountDisplay.textContent = amount;
-                paymentLink.style.display = 'inline-block';
+                amountDisplayText.style.display = 'block';
             } else {
                 alert('Please enter a valid amount.');
             }
