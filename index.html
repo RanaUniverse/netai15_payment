@@ -91,6 +91,11 @@
             margin-top: 10px;
             color: #666666;
         }
+        #desktopMessage {
+            display: none;
+            margin-top: 10px;
+            color: #666666;
+        }
     </style>
     <script src="https://cdn.rawgit.com/davidshimjs/qrcodejs/gh-pages/qrcode.min.js"></script>
 </head>
@@ -103,11 +108,12 @@
         
         <div class="input-box">
             <input type="number" id="amount" placeholder="Enter amount in ₹">
-            <button class="btn" onclick="generateQRCode()">Generate Payment Options</button>
+            <button class="btn" onclick="generatePaymentOptions()">Generate Payment Options</button>
         </div>
         
         <div id="paymentButtonContainer"></div>
         <p id="alternateText">If the button does not work, please pay using the QR code below:</p>
+        <p id="desktopMessage">Please scan the QR code to pay as the button will not work on a computer.</p>
         <div id="qrcode"></div>
         <img id="qrImage" alt="QR Code Image">
         <p id="amountDisplayText">Amount: ₹<span id="amountDisplay"></span></p>
@@ -117,33 +123,46 @@
     </div>
 
     <script>
-        function generateQRCode() {
+        function isMobile() {
+            const userAgent = navigator.userAgent || navigator.vendor || window.opera;
+            return /android|iPad|iPhone|iPod/.test(userAgent.toLowerCase());
+        }
+
+        function generatePaymentOptions() {
             const amount = document.getElementById('amount').value;
             if (amount && amount > 0) {
-                const upiLink = `upi://pay?pa=netai15@paytm&am=${amount}`;
+                const upiID = 'netai15@paytm';
+                const upiLink = `upi://pay?pa=${upiID}&am=${amount}`;
                 const qrCodeContainer = document.getElementById('qrcode');
                 const qrImage = document.getElementById('qrImage');
                 const amountDisplayText = document.getElementById('amountDisplayText');
                 const amountDisplay = document.getElementById('amountDisplay');
                 const alternateText = document.getElementById('alternateText');
                 const paymentButtonContainer = document.getElementById('paymentButtonContainer');
+                const desktopMessage = document.getElementById('desktopMessage');
                 
                 // Clear any existing content
                 qrCodeContainer.innerHTML = '';
                 paymentButtonContainer.innerHTML = '';
+                desktopMessage.style.display = 'none';
 
                 // Generate payment button
-                const paymentButton = document.createElement('a');
-                paymentButton.className = 'btn';
-                paymentButton.href = upiLink;
-                paymentButton.textContent = `Click here to pay ₹${amount}`;
-                paymentButtonContainer.appendChild(paymentButton);
+                if (isMobile()) {
+                    const paymentButton = document.createElement('a');
+                    paymentButton.className = 'btn';
+                    paymentButton.href = upiLink;
+                    paymentButton.textContent = `Click here to pay ₹${amount}`;
+                    paymentButtonContainer.appendChild(paymentButton);
+                    alternateText.style.display = 'block';
+                } else {
+                    desktopMessage.style.display = 'block';
+                }
 
-                // Display alternate text
-                alternateText.style.display = 'block';
-
-                // Generate QR code with a 4px margin
-                const size = 208;  // QR code size + 2 * 4px margin
+                // Generate QR code with a 4px margin and red border
+                const size = 200;  // QR code size
+                const margin = 4;  // 4px margin on each side
+                const border = 4;  // 4px border
+                const textHeight = 30;  // Height for text area
                 const qrCode = new QRCode(qrCodeContainer, {
                     text: upiLink,
                     width: size,
@@ -157,18 +176,30 @@
                     const context = qrCanvas.getContext('2d');
                     const imageData = context.getImageData(0, 0, qrCanvas.width, qrCanvas.height);
 
-                    // Create a new canvas with added margin
+                    // Create a new canvas with added margin, red border, and text area
                     const newCanvas = document.createElement('canvas');
-                    newCanvas.width = qrCanvas.width + 8;  // 4px margin on each side
-                    newCanvas.height = qrCanvas.height + 8;  // 4px margin on each side
+                    newCanvas.width = qrCanvas.width + 2 * margin + 2 * border;  // margin + border on each side
+                    newCanvas.height = qrCanvas.height + 2 * margin + 2 * border + textHeight;  // margin + border on each side + text area
                     const newContext = newCanvas.getContext('2d');
 
                     // Fill with white background
                     newContext.fillStyle = '#ffffff';
                     newContext.fillRect(0, 0, newCanvas.width, newCanvas.height);
 
-                    // Draw the original QR code in the center of the new canvas
-                    newContext.putImageData(imageData, 4, 4);
+                    // Draw the original QR code in the center of the new canvas with margin
+                    newContext.putImageData(imageData, margin + border, margin + border);
+
+                    // Draw red border around the QR code
+                    newContext.strokeStyle = '#ff0000';
+                    newContext.lineWidth = border;
+                    newContext.strokeRect(margin, margin, qrCanvas.width + 2 * border, qrCanvas.height + 2 * border);
+
+                    // Draw UPI ID and amount below the QR code
+                    newContext.fillStyle = '#000000';
+                    newContext.font = '16px Arial';
+                    newContext.textAlign = 'center';
+                    newContext.fillText(`UPI ID: ${upiID}`, newCanvas.width / 2, newCanvas.height - textHeight + 15);
+                    newContext.fillText(`Amount: ₹${amount}`, newCanvas.width / 2, newCanvas.height - 5);
 
                     const qrDataUrl = newCanvas.toDataURL('image/png');
                     qrImage.src = qrDataUrl;
